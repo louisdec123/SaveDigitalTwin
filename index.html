@@ -1,48 +1,303 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1,maximum-scale=1,user-scalable=no"
-    />
-    <title>
-      Save the Digital Twin Startomgeving (RD)
-    </title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Drawing Extent of Living Digital  | ArcGIS Maps SDK for JavaScript 4.27</title>
 
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
-    />
+    <script type="module" src="https://js.arcgis.com/calcite-components/1.4.2/calcite.esm.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/1.4.2/calcite.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css" />
+    <style>
+      html,
+      body,
+      
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+      /* Custom CSS for Search widget */
+      .custom-search {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
+
+      .custom-search input {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        outline: none;
+        border-bottom: 1px solid #ccc;
+        font-size: 16px;
+      }
+      
+      #overlayDiv {
+        z-index: 1;
+        position: absolute;
+        margin: auto auto;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 280px;
+        height: 180px;
+        padding: 10px;
+        background-color: white;
+        border: 1px solid grey;
+        visibility: hidden;
+      }
+      
+      #sidebarDiv {
+        width: 240px;
+        padding: 10px;
+        height: 200px;
+      }
+      
+      input[type="text"] {
+        width: 100%;
+      }
+    </style>
     <script src="https://js.arcgis.com/4.27/"></script>
-	<!--CSS Stylesheet-->
-	<link rel="stylesheet" href="style.css">
-	<!--JS script-->
-	<script src=app.js></script>
-</head>
-<body>
-  <div id="viewDiv"></div>
-  <div id="sidebarDiv" class="esri-widget">
-    <h4 class="esri-heading">Save WebScene</h4>
-    <label class="esri-feature-form__label">Input Title:</label>
-    <input
-      id="webSceneTitle"
-      type="text"
-      class="esri-input"
-      value="Sample Title"
-    /><br /><br />
-    <input
-      id="saveWebScene"
-      type="button"
-      value="Save"
-      disabled
-      class="esri-button"
-    />
-  </div>
-  <div id="overlayDiv" class="esri-widget">
-    <h4 class="esri-heading" id="head"></h4>
-    <label id="info"></label><br /><br />
-    <input type="button" value="OK" class="esri-button" />
-  </div>
-</body>
+    <script>
+      require([
+        "esri/WebScene",
+        "esri/views/SceneView",
+        "esri/widgets/Search",
+        "esri/widgets/Sketch",
+        "esri/layers/GraphicsLayer",
+        "esri/widgets/Expand"
+      ], (
+        WebScene,
+        SceneView,
+        Search,
+        Sketch,
+        GraphicsLayer,
+        Expand
+      ) => {
+        /***********************************
+         * Load the scene and prepare the layers
+         ***********************************/
+
+        const scene = new WebScene({
+          portalItem: {
+            id: "b9d002eb7e474ba5a97ea039dcfb3005"
+          }
+        });
+
+        const extents = {
+          original: {
+            xmin: 7901,
+            ymin: 304869,
+            xmax: 280052,
+            ymax: 629814,
+            spatialReference: {
+              wkid: 28992
+            }
+          }
+        };
+
+        let chosenExtent = "original";
+
+        /***********************************
+         * Create the SceneView
+         ***********************************/
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: scene,
+          qualityProfile: "high"
+        });
+        
+        function handleSaveError(error) {
+          console.error("Error saving web scene:", error);
+          const errorMessage = "Failed to save web scene. Details: " + error.message;
+          statusMessage("Save WebScene Error", errorMessage);
+        }
+
+
+        // Create a custom Search widget
+        const searchWidget = new Search({
+          view: view,
+          container: document.createElement("div"),
+          autoSelect: true // Automatically select and zoom to the result
+        });
+        
+        searchWidget.on("select-result", function (event) {
+        // Extract the bounding box from the selected result's extent
+        const extent = event.result.extent;
+  
+        // Clip the scene to the extent of the selected result
+        reclipArea(extent);
+        });
+
+
+        // Add the custom Search widget to the view
+        view.ui.add(searchWidget.container, "top-right");
+
+        function reclipArea(geometry) {
+          view.clippingArea = geometry.extent;
+        }
+
+        // Add an event listener for the "Reset" button
+        const resetExtentButton = document.getElementById("resetExtent");
+        resetExtentButton.addEventListener("click", () => {
+          // Reset to the original extent
+          reclipArea(extents.original);
+          // Update the chosenExtent variable (if needed)
+          chosenExtent = "original";
+        });
+
+        view.ui.add("menu", "top-right");
+
+        // Create a GraphicsLayer for the sketching
+        const sketchLayer = new GraphicsLayer();
+        scene.add(sketchLayer);
+
+        // Create a Sketch widget
+        const sketchWidget = new Sketch({
+          view: view,
+          layer: sketchLayer,
+          createTools: ["rectangle"], // Limit to rectangle shape
+          defaultUpdateOptions: {
+          toggleToolOnClick: false, // Keep the sketch tool active after drawing
+          },
+        });
+        
+        
+        sketchWidget.visibleElements = {
+        createTools: {
+        point: false,
+        circle: false,
+        polyline: false,
+        polygon: false
+        },
+        selectionTools:{
+        "lasso-selection": false
+        },
+        settingsMenu: false
+        }
+        // Add the Sketch widget to the view
+        view.ui.add(sketchWidget, "bottom-left");
+
+        // Listen for sketch completion event
+        sketchWidget.on("create", (event) => {
+          if (event.state === "complete" && event.graphic) {
+            const geometry = event.graphic.geometry;
+            reclipArea(geometry);
+          }
+        });
+      
+      view.when(() => {
+          // When the webscene and view resolve, display the webscene's
+          // new title in the Div
+          const title = document.getElementById("webSceneTitle");
+          const save = document.getElementById("saveWebScene");
+          save.disabled = false;
+          save.addEventListener("click", () => {
+            document.getElementById("saveWebScene").disabled = true;
+            document
+              .getElementById("saveWebScene")
+              .classList.add("esri-button--secondary");
+
+            // item automatically casts to a PortalItem instance by saveAs
+            const item = {
+              title: title.value
+            };
+
+            // Update properties of the WebScene related to the view.
+            // This should be called just before saving a webscene.
+            scene.updateFrom(view).then(() => {
+              scene
+                .saveAs(item, {
+                ignoreUnsupported: true
+              })
+                // Saved successfully
+                .then((item) => {
+                  // link to the newly-created web scene item
+                  const itemPageUrl =
+                    item.portal.url + "/home/item.html?id=" + item.id;
+                  const link =
+                    '<a target="_blank" href="' +
+                    itemPageUrl +
+                    '">' +
+                    title.value +
+                    "</a>";
+
+                  statusMessage(
+                    "Save WebScene",
+                    "<br> Successfully saved as <i>" + link + "</i>"
+                  );
+                })
+                // Save didn't work correctly
+                .catch((error) => {
+                  statusMessage("Save WebScene", "<br> Error " + error);
+                });
+            });
+          });
+
+          const overlay = document.getElementById("overlayDiv");
+          const ok = overlay.getElementsByTagName("input")[0];
+
+          function statusMessage(head, info) {
+            document
+              .getElementById("saveWebScene")
+              .classList.remove("esri-button--secondary");
+            document.getElementById("saveWebScene").disabled = false;
+            document.getElementById("head").innerHTML = head;
+            document.getElementById("info").innerHTML = info;
+            overlay.style.visibility = "visible";
+          }
+
+          ok.addEventListener("click", () => {
+            overlay.style.visibility = "hidden";
+          });
+
+          view.ui.add("sidebarDiv", "top-right");
+        });
+      });
+      
+      
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <div id="menu" class="esri-widget">
+      <div>
+        <button id="resetExtent">Reset</button>
+      </div>
+    </div>
+
+    <div id="sidebarDiv" class="esri-widget">
+      <h4 class="esri-heading">Save WebScene</h4>
+      <label class="esri-feature-form__label">Title</label>
+      <input
+        id="webSceneTitle"
+        type="text"
+        class="esri-input"
+        value="WebScene Saving Sample"
+      /><br /><br />
+      <input
+        id="saveWebScene"
+        type="button"
+        value="Save"
+        disabled
+        class="esri-button"
+      />
+    </div>
+    <div id="overlayDiv" class="esri-widget">
+      <h4 class="esri-heading" id="head"></h4>
+      <label id="info"></label><br /><br />
+      <input type="button" value="OK" class="esri-button" />
+    </div>
+  </body>
 </html>
