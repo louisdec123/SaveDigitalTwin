@@ -1,5 +1,5 @@
 # save-digital-twin
-This project allows one to search a desired address (within the Netherlands) and and then save an ArcGIS Scene at the current viewpoint.
+This project allows one to search a desired address (within the Netherlands) and clip & save to a personal ArcGIS Online account.
 
 ## Usage
 The Web App is avalaible online with this link: [Save Digital Twin (RD)](https://louisdec123.github.io/save-digital-twin/ "Save Digital Twin (RD)")
