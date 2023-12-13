@@ -7,65 +7,6 @@
     <script type="module" src="https://js.arcgis.com/calcite-components/1.4.2/calcite.esm.js"></script>
     <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/1.4.2/calcite.css" />
     <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css" />
-    <style>
-      html,
-      body,
-      
-      #viewDiv {
-        padding: 0;
-        margin: 0;
-        height: 100%;
-        width: 100%;
-      }
-
-      /* Custom CSS for Search widget */
-      .custom-search {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 9999;
-        background-color: white;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        width: 300px;
-      }
-
-      .custom-search input {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        outline: none;
-        border-bottom: 1px solid #ccc;
-        font-size: 16px;
-      }
-      
-      #overlayDiv {
-        z-index: 1;
-        position: absolute;
-        margin: auto auto;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        width: 280px;
-        height: 180px;
-        padding: 10px;
-        background-color: white;
-        border: 1px solid grey;
-        visibility: hidden;
-      }
-      
-      #sidebarDiv {
-        width: 240px;
-        padding: 10px;
-        height: 200px;
-      }
-      
-      input[type="text"] {
-        width: 100%;
-      }
-    </style>
     <script src="https://js.arcgis.com/4.27/"></script>
     <script>
       require([
@@ -74,14 +15,17 @@
         "esri/widgets/Search",
         "esri/widgets/Sketch",
         "esri/layers/GraphicsLayer",
-        "esri/widgets/Expand"
+        "esri/widgets/Expand",
+        "esri/layers/FeatureLayer"
       ], (
         WebScene,
         SceneView,
         Search,
         Sketch,
         GraphicsLayer,
-        Expand
+        Expand,
+        FeatureLayer
+        
       ) => {
         /***********************************
          * Load the scene and prepare the layers
@@ -92,6 +36,8 @@
             id: "b9d002eb7e474ba5a97ea039dcfb3005"
           }
         });
+        
+        
 
         const extents = {
           original: {
@@ -117,18 +63,48 @@
           qualityProfile: "high"
         });
         
+        
+        
         function handleSaveError(error) {
           console.error("Error saving web scene:", error);
           const errorMessage = "Failed to save web scene. Details: " + error.message;
           statusMessage("Save WebScene Error", errorMessage);
-        }
+        };
+        
+        const featureLayerGemeente = new FeatureLayer({
+          url: "https://services.arcgis.com/nSZVuSZjHpEZZbRo/ArcGIS/rest/services/CBS_Gemeente_actueel/FeatureServer/0",
+          popupTemplate: {
+            // autocasts as new PopupTemplate()
+            title: "Gemeente {statnaam}",
+            overwriteActions: true
+          }
+        });
 
 
         // Create a custom Search widget
         const searchWidget = new Search({
           view: view,
           container: document.createElement("div"),
-          autoSelect: true // Automatically select and zoom to the result
+          autoSelect: true, // Automatically select and zoom to the result
+          //allPlaceholder: "Gemeente",
+          includeDefaultSources: false,
+          sources: [
+            {
+              layer: featureLayerGemeente,
+              searchFields: ["statnaam"],
+              displayField: "statnaam",
+              exactMatch: false,
+              outFields: ["statnaam"],
+              name: "Gemeente",
+              placeholder: "example: Rotterdam"
+            },
+            {
+              name: "Esri Nederland Geocoding Service",
+              placeholder: "example: Rotterdam, NL",
+              singleLineFieldName: "SingleLine",
+          url:"https://geocoder.arcgisonline.nl/arcgis/rest/services/Geocoder_NL_RD/GeocodeServer"
+            }
+          ]
         });
         
         searchWidget.on("select-result", function (event) {
@@ -284,7 +260,7 @@
         id="webSceneTitle"
         type="text"
         class="esri-input"
-        value="WebScene Saving Sample"
+        value="Ex. Digital Twin Webscene"
       /><br /><br />
       <input
         id="saveWebScene"
