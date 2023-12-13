@@ -3,9 +3,9 @@ This project allows one to search a desired address (within the Netherlands) and
 
 ## Usage
 The Web App is avalaible online with this link: [Save Digital Twin (RD)](https://louisdec123.github.io/save-digital-twin/ "Save Digital Twin (RD)")
-1. Search any address
-2. Orient viewpoint as desired
-3. Title your new scene
-4. Click 'Save'
-5. Log in to your ArcGIS Online account
-6. Click provided link to redirect to your Scene
+1. Search any address or municiplality (Gemeente)
+3. Orient viewpoint as desired
+4. Title your new scene
+5. Click 'Save'
+6. Log in to your ArcGIS Online account
+7. Click provided link to redirect to your Scene in ArcGIS Online
